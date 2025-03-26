@@ -1,0 +1,95 @@
+import React, { useState, useEffect } from "react";
+import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+
+const containerStyle = {
+  width: "100%",
+  height: "100%"
+};
+
+const defaultCenter = {
+  lat: 56.1304,
+  lng: -106.3468
+};
+
+const libraries = ["places"];
+
+function MapPage({ cityName, citySelected, onVenueResults }) {
+  const [mapRef, setMapRef] = useState(null);
+  const [markers, setMarkers] = useState([]);
+
+  // When citySelected changes from false->true, we do geocode + nearSearch
+  useEffect(() => {
+    if (!citySelected || !cityName || !mapRef) return;
+    searchCity(cityName);
+  }, [citySelected, cityName, mapRef]);
+
+  const searchCity = (city) => {
+    if (!window.google || !mapRef) return;
+
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address: city }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        const location = results[0].geometry.location;
+
+        mapRef.panTo(location);
+        mapRef.setZoom(13);
+
+        const rawLocation = {
+          lat: location.lat(),
+          lng: location.lng()
+        };
+
+        // ✅ PlacesService tied to actual map instance
+        const service = new window.google.maps.places.PlacesService(mapRef);
+
+        service.textSearch(
+          {
+            location: rawLocation,
+            radius: 8000,
+            query: "bars restaurants night club food"
+          },
+          (placesResults, placesStatus) => {
+            if (placesStatus === "OK" && placesResults.length > 0) {
+              setMarkers(
+                placesResults.map((place) => ({
+                  name: place.name,
+                  lat: place.geometry.location.lat(),
+                  lng: place.geometry.location.lng()
+                }))
+              );
+              onVenueResults(placesResults);
+            } else {
+              onVenueResults([]);
+            }
+          }
+        );
+      } else {
+        alert("City not found");
+      }
+    });
+  };
+
+  return (
+    <LoadScript
+      googleMapsApiKey="AIzaSyD2AooHp8vIc_k3EmMurnBHm5h7qhu7DUI"
+      libraries={libraries}
+    >
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={defaultCenter}
+        zoom={4}
+        onLoad={(map) => setMapRef(map)}
+      >
+        {markers.map((marker, index) => (
+          <Marker
+            key={index}
+            position={{ lat: marker.lat, lng: marker.lng }}
+            title={marker.name}
+          />
+        ))}
+      </GoogleMap>
+    </LoadScript>
+  );
+}
+
+export default MapPage;
