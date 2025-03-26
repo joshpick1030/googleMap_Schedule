@@ -14,7 +14,12 @@ function ProcessingScreen({ onFinish }) {
     return () => clearTimeout(timer);
   }, [onFinish]);
 
-  return <h2 style={{ padding: "1rem" }}>Processing your schedule...</h2>;
+  return (
+    <div className="processing-screen">
+    <div className="spinner" />
+    <h2>Processing your schedule...</h2>
+    </div>
+  );
 }
 
 function App() {
@@ -33,6 +38,7 @@ function App() {
 
   //Add Preload Spinner
   const [loadingPlaces, setLoadingPlaces] = useState(false);
+  
 
   // On app load, restore user if within 10 min
   React.useEffect(() => {
@@ -136,8 +142,11 @@ function App() {
   return (
     <div className="app-container">
       {user && (
+        
         <div className="sidebar">
+          
           <h2> Welcome, {user.name}!</h2>
+          
           <button
             className = "logout-button"
             onClick={() => {
@@ -151,7 +160,7 @@ function App() {
           >
             🔒 Logout
           </button>
-          {citySelected ? <p>City: {cityName}</p> : <p>Enter a city to begin!</p>}
+          {citySelected }
 
           {/* If final itinerary is ready */}
           {questionDone && !processing && (
