@@ -4,6 +4,7 @@ import QuestionFlow from "./components/QuestionFlow";
 import GoogleLoginButton from "./components/GoogleLoginButton";
 import "./App.css";
 import { InfoWindow } from "@react-google-maps/api";
+import { useNavigate } from "react-router-dom";
 
 function ProcessingScreen({ onFinish }) {
   React.useEffect(() => {
@@ -17,6 +18,7 @@ function ProcessingScreen({ onFinish }) {
 }
 
 function App() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
 
   // CITY + PLACES
@@ -32,9 +34,32 @@ function App() {
   //Add Preload Spinner
   const [loadingPlaces, setLoadingPlaces] = useState(false);
 
+  // On app load, restore user if within 10 min
+  React.useEffect(() => {
+    const saved = localStorage.getItem("eventai_user");
+    if (saved) {
+      const { user, timestamp } = JSON.parse(saved);
+      const now = Date.now();
+  
+      const tenMinutes = 10 * 60 * 1000;
+      if (now - timestamp < tenMinutes) {
+        setUser(user);
+      } else {
+        localStorage.removeItem("eventai_user");
+      }
+    }
+  }, []);
+
   // HANDLE LOGIN
   const handleLoginSuccess = (userData) => {
     setUser(userData);
+
+    // Save login time and user data in localStorage
+    const loginData = {
+      user: userData,
+      timestamp: Date.now()
+    };
+    localStorage.setItem("eventai_user", JSON.stringify(loginData));
   };
 
   // WHEN CITY IS FOUND
@@ -113,6 +138,19 @@ function App() {
       {user && (
         <div className="sidebar">
           <h2>👋 Welcome, {user.name}!</h2>
+          <button
+            className = "logout-button"
+            onClick={() => {
+              const confirmed = window.confirm("Are you sure you want to log out?");
+              if (confirmed) {
+                setUser(null);
+                localStorage.removeItem("eventai_user");
+                navigate("/");
+              }
+            }}
+          >
+            🔒 Logout
+          </button>
           {citySelected ? <p>City: {cityName}</p> : <p>Enter a city to begin!</p>}
 
           {/* If final itinerary is ready */}
