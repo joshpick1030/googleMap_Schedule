@@ -17,6 +17,16 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
   const [mapRef, setMapRef] = useState(null);
   const [markers, setMarkers] = useState([]);
   const [selectedMarker, setSelectedMarker] = useState(null);
+  const [showLabels, setShowLabels] = useState(false);
+
+  const toggleLabels = () => {
+    if (!mapRef) return;
+
+    const newShowLabels = !showLabels;
+    setShowLabels(newShowLabels);
+
+    mapRef.setMapTypeId(newShowLabels ? "hybrid" : "satellite");
+  };
 
   // When citySelected changes from false->true, we do geocode + nearSearch
   useEffect(() => {
@@ -109,16 +119,45 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
         mapContainerStyle={containerStyle}
         center={defaultCenter}
         zoom={4}
+        mapTypeId="satellite"
+        options={{
+          mapTypeControl: false, // hides Map/Satellite switcher
+        }}
         onLoad={(map) => setMapRef(map)}
         onClick={() => {
           setSelectedMarker(null); // clear info window if background clicked
         }}
       >
+        <div
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            zIndex: 5,
+            background: "white",
+            padding: "0.5rem 1rem",
+            borderRadius: "8px",
+            boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+            fontSize: "0.9rem"
+          }}
+        >
+          <label>
+            <input
+              type="checkbox"
+              checked={showLabels}
+              onChange={toggleLabels}
+              style={{ marginRight: "6px" }}
+            />
+            Show Labels
+          </label>
+        </div>
+
         {selectedMarker && (
           <InfoWindow
             position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
             onCloseClick={() => setSelectedMarker(null)}
           >
+
             <div style={{ maxWidth: "220px" }}>
               {/* Image preview */}
               {selectedMarker.photoUrl ? (

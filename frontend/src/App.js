@@ -14,7 +14,7 @@ function ProcessingScreen({ onFinish }) {
     return () => clearTimeout(timer);
   }, [onFinish]);
 
-  return <h2 style={{ padding: "1rem" }}>Processing your schedule... 🤖✨</h2>;
+  return <h2 style={{ padding: "1rem" }}>Processing your schedule...</h2>;
 }
 
 function App() {
@@ -137,7 +137,7 @@ function App() {
     <div className="app-container">
       {user && (
         <div className="sidebar">
-          <h2>👋 Welcome, {user.name}!</h2>
+          <h2> Welcome, {user.name}!</h2>
           <button
             className = "logout-button"
             onClick={() => {
