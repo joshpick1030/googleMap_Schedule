@@ -46,13 +46,14 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
         service.textSearch(
           {
             location: rawLocation,
-            radius: 8000,
+            radius: 1500,
             query: "bars restaurants night club food"
           },
           (placesResults, placesStatus) => {
             if (placesStatus === "OK" && placesResults.length > 0) {
               setMarkers(
                 placesResults.map((place) => ({
+                  placeId: place.place_id,
                   name: place.name,
                   lat: place.geometry.location.lat(),
                   lng: place.geometry.location.lng(),
@@ -82,18 +83,34 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
         center={defaultCenter}
         zoom={4}
         onLoad={(map) => setMapRef(map)}
+        onClick={() => {
+          setSelectedMarker(null); // clear info window if background clicked
+        }}
       >
         {selectedMarker && (
           <InfoWindow
-            position={{ lat:selectedMarker.lat, lng: selectedMarker.lng }}
-            onCloseClick= {() => setSelectedMarker(null)}
+            position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
+            onCloseClick={() => setSelectedMarker(null)}
           >
-            <div style={{ maxWidth: "200px" }}>
-              <h4 style= {{margin: "0 0 4px" }}>{selectedMarker.name}</h4>
-              <p style={{ margin: "0" }}>{selectedMarker.address || "No address provided"}</p>
-                {selectedMarker.rating && (
-                  <p style={{ margin: "4px 0 0" }}>⭐ {selectedMarker.rating}</p>
-                )}
+            <div style={{ maxWidth: "220px" }}>
+              {/* Image preview */}
+              {selectedMarker.photoUrl ? (
+                <img
+                  src={selectedMarker.photoUrl}
+                  alt="Venue preview"
+                  style={{ width: "100%", borderRadius: "8px", marginBottom: "8px" }}
+                />
+              ) : (
+                <img
+                  src="https://placehold.co/400x200?text=No+Image"
+                  alt={selectedMarker.name}
+                  style={{ width: "100%", borderRadius: "8px", marginBottom: "8px" }}
+                />
+              )}
+
+              <h4>{selectedMarker.name}</h4>
+              <p>{selectedMarker.address || "No address"}</p>
+              {selectedMarker.rating && <p>⭐ {selectedMarker.rating}</p>}
             </div>
           </InfoWindow>
         )}
@@ -102,7 +119,28 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
             key={index}
             position={{ lat: marker.lat, lng: marker.lng }}
             title={marker.name}
-            onClick={() => setSelectedMarker(marker)}
+            onClick={() => {
+              const service = new window.google.maps.places.PlacesService(mapRef);
+              
+              // Helper to fetch photoUrl for each place using placeId
+              service.getDetails(
+                {
+                  placeId: marker.placeId,
+                  fields: ["photos"]
+                },
+                (details, status) => {
+                  if (status === "OK") {
+                    console.log("PLACE DETAILS RESPONSE", details);
+                    const photoUrl = details?.photos?.[0]?.getUrl({
+                      maxWidth: 400
+                    }) || null;
+                    setSelectedMarker({ ...marker, photoUrl });
+                  } else {
+                    setSelectedMarker(marker); // fallback
+                  }
+                }
+              );
+            }}
           />
         ))}
       </GoogleMap>
