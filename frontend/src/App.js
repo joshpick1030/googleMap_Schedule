@@ -92,7 +92,18 @@ function App() {
 
     // Spots to visit
     const spots = parseInt(answers.spots || "3", 10);
-    return filtered.slice(0, spots);
+
+    // Try to get spots that are open now
+    let openNowFiltered = filtered.filter((place) => place.openNow === true);
+
+    // If we don’t have enough open ones, fill in the rest
+    if (openNowFiltered.length < spots) {
+      const closedOrUnknown = filtered.filter((place) => place.openNow !== true);
+      openNowFiltered = [...openNowFiltered, ...closedOrUnknown];
+    }
+
+    // Return only the number of spots requested
+    return openNowFiltered.slice(0, spots);
   };
 
   const finalPlaces = getFilteredPlaces();
@@ -125,12 +136,46 @@ function App() {
                       className="venue-photo"
                     />
                   )}
+
                   <h4>{venue.name}</h4>
                   <p>{venue.address || venue.vicinity || "No address provided"}</p>
+                  <p
+                    style={{
+                      color: venue.openNow === true ? "green" : venue.openNow === false ? "red" : "gray",
+                      fontWeight: "bold",
+                      margin: "0.3rem 0"
+                    }}
+                  >
+                    {venue.openNow === true
+                      ? "🟢 Open Now"
+                      : venue.openNow === false
+                      ? "🔴 Closed"
+                      : "⏳ Hours Unknown"}
+                  </p>
                   <p>⭐ {venue.rating || "N/A"}</p>
+
+                  {venue.openNow !== true && venue.todayHours && (
+                    <p style={{ fontStyle: "italic", color: "#666", fontSize: "0.85rem" }}>
+                      {venue.todayHours}
+                    </p>
+                  )}
+
+                  {/* 🧭 Directions link */}
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${venue.lat},${venue.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-block",
+                      marginTop: "0.5rem",
+                      color: "#007bff",
+                      textDecoration: "underline"
+                    }}
+                  >
+                    🧭 Get Directions
+                  </a>
                 </div>
               ))}
-
               {/* If no places matched, mention something */}
               {finalPlaces.length === 0 && (
                 <p>No matching venues found. Try a bigger city or different answers!</p>

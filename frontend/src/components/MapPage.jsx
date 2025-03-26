@@ -57,13 +57,18 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
                   service.getDetails(
                     {
                       placeId: place.place_id,
-                      fields: ["photos", "types"]
+                      fields: ["photos", "types", "opening_hours"]
                     },
                     (details, status) => {
                       const photoUrl = status === "OK"
                         ? details?.photos?.[0]?.getUrl({ maxWidth: 400 })
                         : null;
-        
+
+                      const jsDay = new Date().getDay();
+                      const todayIndex = jsDay === 0 ? 6 : jsDay - 1;
+                      const weekdayText = details?.opening_hours?.weekday_text || [];
+                      const todayHours = weekdayText.length ? weekdayText[todayIndex] : null;
+                                
                       resolve({
                         placeId: place.place_id,
                         name: place.name,
@@ -72,7 +77,9 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
                         address: place.vicinity || place.formatted_address,
                         rating: place.rating,
                         photoUrl,
-                        types: place.types // needed for filtering
+                        types: place.types, // needed for filtering
+                        openNow: details?.opening_hours?.open_now ?? null,
+                        todayHours
                       });
                     }
                   );
@@ -150,7 +157,6 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
                 },
                 (details, status) => {
                   if (status === "OK") {
-                    console.log("PLACE DETAILS RESPONSE", details);
                     const photoUrl = details?.photos?.[0]?.getUrl({
                       maxWidth: 400
                     }) || null;

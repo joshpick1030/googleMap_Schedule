@@ -104,3 +104,19 @@ body {
   width: 100%;
   margin-bottom: 0.5rem;
 }
+
+.venue a {
+  display: inline-block;
+  background-color: #e0f2ff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  color: #007bff;
+  transition: all 0.2s ease-in-out;
+}
+
+.venue a:hover {
+  background-color: #007bff;
+  color: white;
+}
