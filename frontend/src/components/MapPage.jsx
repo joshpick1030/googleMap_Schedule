@@ -25,6 +25,14 @@ function MapPage({
   const [markers, setMarkers] = useState([]);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [showLabels, setShowLabels] = useState(false);
+  const [mapStyle, setMapStyle] = useState([
+    {
+      featureType: "all",
+      elementType: "labels",
+      stylers: [{ visibility: "off" }],
+    },
+  ]);
+  
 
   const handleMapLoad = (map) => setMapRef(map);
 
@@ -33,7 +41,15 @@ function MapPage({
     const newShowLabels = !showLabels;
     setShowLabels(newShowLabels);
     mapRef.setMapTypeId(newShowLabels ? "hybrid" : "satellite");
+    setMapStyle(newShowLabels ? null : [
+      {
+        featureType: "all",
+        elementType: "labels",
+        stylers: [{ visibility: "off" }],
+      },
+    ]);
   };
+
 
   useEffect(() => {
     if (!citySelected || !cityName || !mapRef || !shouldTriggerSearch) return;
@@ -169,7 +185,10 @@ function MapPage({
         center={defaultCenter}
         zoom={4}
         mapTypeId="satellite"
-        options={{ mapTypeControl: false }}
+        options={{ 
+          mapTypeControl: false,
+          styles: mapStyle,
+        }}
         onLoad={handleMapLoad}
         onClick={() => setSelectedMarker(null)}
       >

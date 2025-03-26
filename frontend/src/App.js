@@ -250,22 +250,20 @@ function App() {
             disableAutoFocus
             disableEscapeKeyDown
             hideBackdrop
-            style={{ pointerEvents: "none" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
             <Box
               sx={{
-                position: "absolute",
-                top: "20%",
-                left: "50%",
-                transform: "translateX(-50%)",
                 width: "90%",
                 maxWidth: 500,
                 bgcolor: "white",
                 boxShadow: 24,
                 p: 3,
                 borderRadius: 3,
-                pointerEvents: "auto",
-                zIndex: 1300,
               }}
             >
               <QuestionFlow

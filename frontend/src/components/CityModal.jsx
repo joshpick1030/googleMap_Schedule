@@ -32,10 +32,10 @@ function CityModal({
       <Box
         sx={{
           position: "absolute",
-          top: minimized ? "auto" : "20%",
-          top: minimized ? 20 : "auto",
-          right: minimized ? 20 : "50%",
-          transform: minimized ? "none" : "translateX(50%)",
+          top: minimized ? 20 : "50%",
+          left: minimized ? "auto" : "50%",
+          transform: minimized ? "none" : "translate(-50%, -50%)",
+          right: minimized ? 20 : "auto",
           width: minimized ? "auto" : "90%",
           maxWidth: minimized ? "auto" : 400,
           bgcolor: minimized ? "transparent" : "white",
@@ -88,7 +88,7 @@ function CityModal({
               px: 2.5,
               py: 1,
               top: 50,
-              right:-5,
+              right: -5,
               fontWeight: "bold",
               background: "linear-gradient(to right, #7b2ff7, #f107a3)",
               textTransform: "none",
