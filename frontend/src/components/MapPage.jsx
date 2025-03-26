@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+// MapPage.jsx
+import React, { useState, useEffect, useRef } from "react";
+import { GoogleMap, LoadScript, OverlayView } from "@react-google-maps/api";
 
 const containerStyle = {
   width: "100%",
@@ -25,66 +26,37 @@ function MapPage({
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [showLabels, setShowLabels] = useState(false);
 
-  const [redMarkerIcon, setRedMarkerIcon] = useState(null);
-  const [greenMarkerIcon, setGreenMarkerIcon] = useState(null);
+  const handleMapLoad = (map) => setMapRef(map);
 
   const toggleLabels = () => {
     if (!mapRef) return;
-
     const newShowLabels = !showLabels;
     setShowLabels(newShowLabels);
-
     mapRef.setMapTypeId(newShowLabels ? "hybrid" : "satellite");
   };
 
-  // Load icons after map is ready
-  const handleMapLoad = (map) => {
-    setMapRef(map);
-    if (window.google?.maps) {
-      setRedMarkerIcon({
-        url: "https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png",
-        scaledSize: new window.google.maps.Size(47, 73),
-      });
-
-      setGreenMarkerIcon({
-        url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
-        scaledSize: new window.google.maps.Size(27, 43),
-      });
-    }
-  };
-
-  // Trigger search when ready
   useEffect(() => {
     if (!citySelected || !cityName || !mapRef || !shouldTriggerSearch) return;
     searchCity(cityName);
   }, [citySelected, cityName, mapRef, shouldTriggerSearch]);
 
   const searchCity = (city) => {
-    if (!window.google || !mapRef) return;
-
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ address: city }, (results, status) => {
       if (status === "OK" && results[0]) {
         const location = results[0].geometry.location;
-
         mapRef.panTo(location);
         mapRef.setZoom(13);
 
-        const rawLocation = {
-          lat: location.lat(),
-          lng: location.lng(),
-        };
-
         const service = new window.google.maps.places.PlacesService(mapRef);
-
         service.textSearch(
           {
-            location: rawLocation,
+            location,
             radius: 5000,
             query: "bars restaurants night club food",
           },
           (placesResults, placesStatus) => {
-            if (placesStatus === "OK" && placesResults.length > 0) {
+            if (placesStatus === "OK") {
               const enrichPlace = (place) =>
                 new Promise((resolve) => {
                   service.getDetails(
@@ -120,9 +92,9 @@ function MapPage({
                   );
                 });
 
-              Promise.all(placesResults.map(enrichPlace)).then((enrichedPlaces) => {
-                setMarkers(enrichedPlaces);
-                onVenueResults(enrichedPlaces);
+              Promise.all(placesResults.map(enrichPlace)).then((enriched) => {
+                setMarkers(enriched);
+                onVenueResults(enriched);
               });
             } else {
               onVenueResults([]);
@@ -135,11 +107,63 @@ function MapPage({
     });
   };
 
+  const renderMarker = (marker) => {
+    const isSuggested = suggestedPlaceIds.includes(marker.placeId);
+    const color = isSuggested ? "#e53935" : "#43a047";
+    return (
+      <OverlayView
+        key={marker.placeId}
+        position={{ lat: marker.lat, lng: marker.lng }}
+        mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+      >
+        <div
+          onClick={() => setSelectedMarker(marker)}
+          style={{
+            width: 60,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            transform: "translate(-50%, -100%)",
+            cursor: "pointer",
+          }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: "50%",
+              background: "white",
+              padding: 2,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+            }}
+          >
+            <img
+              src={marker.photoUrl || "https://placekitten.com/60/60"}
+              alt={marker.name}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                borderRadius: "50%",
+              }}
+            />
+          </div>
+          <div
+            style={{
+              width: 10,
+              height: 10,
+              marginTop: 4,
+              borderRadius: "50%",
+              background: color,
+            }}
+          ></div>
+        </div>
+      </OverlayView>
+    );
+  };
+
   return (
-    <LoadScript
-      googleMapsApiKey="AIzaSyD2AooHp8vIc_k3EmMurnBHm5h7qhu7DUI"
-      libraries={libraries}
-    >
+    <LoadScript googleMapsApiKey="AIzaSyD2AooHp8vIc_k3EmMurnBHm5h7qhu7DUI" libraries={libraries}>
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={defaultCenter}
@@ -149,7 +173,6 @@ function MapPage({
         onLoad={handleMapLoad}
         onClick={() => setSelectedMarker(null)}
       >
-        {/* Top-right toggle */}
         <div
           style={{
             position: "absolute",
@@ -159,7 +182,7 @@ function MapPage({
             background: "white",
             padding: "0.5rem 1rem",
             borderRadius: "8px",
-            boxShadow: "0 2px 5px rgba(0,0,0,0.4)",
+            boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
             fontSize: "0.9rem",
           }}
         >
@@ -174,68 +197,7 @@ function MapPage({
           </label>
         </div>
 
-        {/* Info window */}
-        {selectedMarker && (
-          <InfoWindow
-            position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
-            onCloseClick={() => setSelectedMarker(null)}
-          >
-            <div style={{ maxWidth: "220px" }}>
-              {selectedMarker.photoUrl ? (
-                <img
-                  src={selectedMarker.photoUrl}
-                  alt="Venue preview"
-                  style={{
-                    width: "100%",
-                    borderRadius: "8px",
-                    marginBottom: "8px",
-                  }}
-                />
-              ) : (
-                <img
-                  src="https://placehold.co/400x200?text=No+Image"
-                  alt={selectedMarker.name}
-                  style={{
-                    width: "100%",
-                    borderRadius: "8px",
-                    marginBottom: "8px",
-                  }}
-                />
-              )}
-              <h4>{selectedMarker.name}</h4>
-              <p>{selectedMarker.address || "No address"}</p>
-              {selectedMarker.rating && <p>⭐ {selectedMarker.rating}</p>}
-            </div>
-          </InfoWindow>
-        )}
-
-        {/* Markers (suggested = red, others = green) */}
-        {redMarkerIcon &&
-          greenMarkerIcon &&
-          markers.map((marker, index) => {
-            const isSuggested = suggestedPlaceIds?.includes(marker.placeId);
-            return (
-              <Marker
-                key={index}
-                position={{ lat: marker.lat, lng: marker.lng }}
-                title={marker.name}
-                icon={isSuggested ? redMarkerIcon : greenMarkerIcon}
-                onClick={() => {
-                  const service = new window.google.maps.places.PlacesService(mapRef);
-                  service.getDetails(
-                    { placeId: marker.placeId, fields: ["photos"] },
-                    (details, status) => {
-                      const photoUrl =
-                        status === "OK"
-                          ? details?.photos?.[0]?.getUrl({ maxWidth: 400 })
-                          : null;
-                      setSelectedMarker({ ...marker, photoUrl });
-                    }
-                  );
-                }}
-              />
-            );
-          })}
+        {markers.map(renderMarker)}
       </GoogleMap>
     </LoadScript>
   );
