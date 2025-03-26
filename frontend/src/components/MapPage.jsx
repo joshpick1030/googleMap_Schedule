@@ -123,6 +123,26 @@ function MapPage({
     });
   };
 
+  useEffect(() => {
+    if (!mapRef || suggestedPlaceIds.length === 0) return;
+  
+    const bounds = new window.google.maps.LatLngBounds();
+  
+    // Find marker objects that are suggested
+    const suggestedMarkers = markers.filter(marker =>
+      suggestedPlaceIds.includes(marker.placeId)
+    );
+  
+    suggestedMarkers.forEach(marker => {
+      bounds.extend({ lat: marker.lat, lng: marker.lng });
+    });
+  
+    // Only apply bounds if at least one valid location exists
+    if (!bounds.isEmpty()) {
+      mapRef.fitBounds(bounds);
+    }
+  }, [suggestedPlaceIds, mapRef, markers]);
+
   const renderMarker = (marker) => {
     const isSuggested = suggestedPlaceIds.includes(marker.placeId);
     const color = isSuggested ? "#e53935" : "#43a047";
@@ -140,6 +160,8 @@ function MapPage({
             flexDirection: "column",
             alignItems: "center",
             transform: "translate(-50%, -100%)",
+            zIndex: suggestedPlaceIds.length > 0 && isSuggested ? 999 : 1,
+            position: "relative",
             cursor: "pointer",
           }}
         >
@@ -154,13 +176,15 @@ function MapPage({
             }}
           >
             <img
-              src={marker.photoUrl || "https://placekitten.com/60/60"}
+              src={marker.photoUrl ||  "https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?auto=format&fit=crop&w=60&h=60&q=80"}
               alt={marker.name}
               style={{
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                borderRadius: "50%",
+                borderRadius: "1%",
+                opacity: suggestedPlaceIds.length > 0 && !isSuggested ? 0.4 : 1, 
+                transition: "opacity 2s ease-in-out",
               }}
             />
           </div>
