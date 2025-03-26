@@ -16,9 +16,11 @@ function ProcessingScreen({ onFinish }) {
   }, [onFinish]);
 
   return (
-    <div className="processing-screen">
-      <div className="spinner" />
-      <h2>Processing your schedule...</h2>
+    <div className="processing-overlay">
+      <div className="processing-panel">
+        <div className="spinner" />
+        <h2>Processing your schedule...</h2>
+      </div>
     </div>
   );
 }

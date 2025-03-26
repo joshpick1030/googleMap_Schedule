@@ -163,26 +163,30 @@ function MapPage({
             zIndex: suggestedPlaceIds.length > 0 && isSuggested ? 999 : 1,
             position: "relative",
             cursor: "pointer",
+            opacity: suggestedPlaceIds.length > 0 && !isSuggested ? 0.3 : 1, // fade non-suggested
+            transition: "opacity 0.3s ease",
+            zIndex: isSuggested ? 10 : 1, // bring suggested to front
           }}
         >
           <div
             style={{
               width: 48,
               height: 48,
-              borderRadius: "50%",
+              borderRadius: "10%",
               background: "white",
               padding: 2,
               boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
             }}
           >
             <img
-              src={marker.photoUrl ||  "https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?auto=format&fit=crop&w=60&h=60&q=80"}
+              src={marker.photoUrl ||  
+              "https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?auto=format&fit=crop&w=60&h=60&q=80"}
               alt={marker.name}
               style={{
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                borderRadius: "1%",
+                borderRadius: "5%",
                 opacity: suggestedPlaceIds.length > 0 && !isSuggested ? 0.4 : 1, 
                 transition: "opacity 2s ease-in-out",
               }}
