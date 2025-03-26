@@ -159,7 +159,7 @@ function MapPage({
             background: "white",
             padding: "0.5rem 1rem",
             borderRadius: "8px",
-            boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+            boxShadow: "0 2px 5px rgba(0,0,0,0.4)",
             fontSize: "0.9rem",
           }}
         >
