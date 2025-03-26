@@ -116,20 +116,61 @@ function App() {
     <div className="app-container">
       {user && (
         <div className="sidebar">
-          <h2> Welcome, {user.name}!</h2>
-          <button
-            className="logout-button"
-            onClick={() => {
-              const confirmed = window.confirm("Are you sure you want to log out?");
-              if (confirmed) {
-                setUser(null);
-                localStorage.removeItem("eventai_user");
-                navigate("/");
-              }
-            }}
-          >
-            🔒 Logout
-          </button>
+          <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+            <p style={{ fontSize: "0.85rem", color: "#444", margin: 0 }}>
+              {user.email}
+            </p>
+            <div style={{ position: "relative", display: "inline-block", marginTop: "0.5rem" }}>
+              <img
+                src={user.picture}
+                alt={user.name}
+                style={{
+                  width: "80px",
+                  height: "80px",
+                  borderRadius: "5z0%",
+                  objectFit: "cover",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.2)"
+                }}
+              />
+            </div>
+            <h3 style={{ marginTop: "0.6rem", fontSize: "1.1rem", fontWeight: "500" }}>
+              Hi, {user.given_name || user.name.split(" ")[0]}!
+            </h3>
+            <div
+              style={{
+                position: "relative",
+                top: 0,
+                zIndex: 5,
+                background: "white",
+                padding: "0.5rem 1rem",
+                borderRadius: "8px",
+                boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+                fontSize: "0.9rem",
+                textAlign: "center",
+                marginBottom: "1rem"
+            }}>
+              <button
+                onClick={() => {
+                  const confirmed = window.confirm("Are you sure you want to log out?");
+                  if (confirmed) {
+                    setUser(null);
+                    localStorage.removeItem("eventai_user");
+                    navigate("/");
+                  }
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  color: "#b00020",
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+          
 
           {questionDone && !processing && (
             <>

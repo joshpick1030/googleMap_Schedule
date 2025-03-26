@@ -48,8 +48,8 @@ function CityModal({
       >
         {!minimized ? (
           <>
-            <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
-              Select Your City 🇨🇦
+            <Typography variant="h6" component="h2" sx={{ mb: 2, textAlign: "center"}}>
+              Select Your City
             </Typography>
             <TextField
               fullWidth
@@ -89,10 +89,13 @@ function CityModal({
               py: 1,
               top: 50,
               right: -5,
-              fontWeight: "bold",
-              background: "linear-gradient(to right, #7b2ff7, #f107a3)",
+              fontSize: "0.9rem",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
               textTransform: "none",
-              boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)"
+              borderRadius: "8px",
+              textAlign: "center",
+              marginBottom: "1rem",
+              boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)",
             }}
           >
             Enter City

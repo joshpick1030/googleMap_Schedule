@@ -164,7 +164,7 @@ function MapPage({
             position: "relative",
             cursor: "pointer",
             opacity: suggestedPlaceIds.length > 0 && !isSuggested ? 0.3 : 1, // fade non-suggested
-            transition: "opacity 0.3s ease",
+            transition: "opacity 5.5s ease",
             zIndex: isSuggested ? 10 : 1, // bring suggested to front
           }}
         >
@@ -179,8 +179,7 @@ function MapPage({
             }}
           >
             <img
-              src={marker.photoUrl ||  
-              "https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?auto=format&fit=crop&w=60&h=60&q=80"}
+              src={marker.photoUrl}
               alt={marker.name}
               style={{
                 width: "100%",
@@ -188,7 +187,7 @@ function MapPage({
                 objectFit: "cover",
                 borderRadius: "5%",
                 opacity: suggestedPlaceIds.length > 0 && !isSuggested ? 0.4 : 1, 
-                transition: "opacity 2s ease-in-out",
+                transition: "opacity 6s ease-in-out",
               }}
             />
           </div>
