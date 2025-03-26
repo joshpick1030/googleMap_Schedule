@@ -13,6 +13,37 @@ const defaultCenter = {
 
 const libraries = ["places"];
 
+function createCustomMarkerIcon(photoUrl, isSuggested) {
+  const size = 60;
+  const color = isSuggested ? "#e53935" : "#43a047"; // red or green
+  const safeUrl = encodeURI(photoUrl || "https://placehold.co/60x60");
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size + 12}">
+      <foreignObject width="${size}" height="${size}">
+        <div xmlns="http://www.w3.org/1999/xhtml" style="border-radius:50%; overflow:hidden; width:${size}px; height:${size}px;">
+          <img src="${safeUrl}" width="${size}" height="${size}" style="object-fit: cover;" />
+        </div>
+      </foreignObject>
+      <circle cx="${size / 2}" cy="${size + 6}" r="6" fill="${color}" />
+    </svg>
+  `.trim();
+
+  return {
+    url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    scaledSize: new window.google.maps.Size(size, size + 12),
+    anchor: new window.google.maps.Point(size / 2, size),
+  };
+}
+
+function safePhotoUrl(url) {
+  try {
+    return encodeURI(url || "https://placehold.co/60x60");
+  } catch {
+    return "https://placehold.co/60x60";
+  }
+}
+
 function MapPage({
   cityName,
   citySelected,
@@ -28,14 +59,14 @@ function MapPage({
   const [redMarkerIcon, setRedMarkerIcon] = useState(null);
   const [greenMarkerIcon, setGreenMarkerIcon] = useState(null);
 
-  const toggleLabels = () => {
+  const toggleLabels = React.useCallback(() => {
     if (!mapRef) return;
-
-    const newShowLabels = !showLabels;
-    setShowLabels(newShowLabels);
-
-    mapRef.setMapTypeId(newShowLabels ? "hybrid" : "satellite");
-  };
+    setShowLabels((prev) => {
+      const newVal = !prev;
+      mapRef?.setMapTypeId(newVal ? "hybrid" : "roadmap");
+      return newVal;
+    });
+  }, [mapRef]);
 
   // Load icons after map is ready
   const handleMapLoad = (map) => {
@@ -213,22 +244,23 @@ function MapPage({
         {redMarkerIcon &&
           greenMarkerIcon &&
           markers.map((marker, index) => {
+            const imageUrl = safePhotoUrl(marker.photoUrl);
             const isSuggested = suggestedPlaceIds?.includes(marker.placeId);
+            console.log("Rendering marker:", marker.name, createCustomMarkerIcon(imageUrl, isSuggested));
             return (
               <Marker
                 key={index}
                 position={{ lat: marker.lat, lng: marker.lng }}
                 title={marker.name}
-                icon={isSuggested ? redMarkerIcon : greenMarkerIcon}
+                icon={createCustomMarkerIcon(imageUrl, isSuggested)}
                 onClick={() => {
                   const service = new window.google.maps.places.PlacesService(mapRef);
                   service.getDetails(
                     { placeId: marker.placeId, fields: ["photos"] },
                     (details, status) => {
-                      const photoUrl =
-                        status === "OK"
-                          ? details?.photos?.[0]?.getUrl({ maxWidth: 400 })
-                          : null;
+                      const photoUrl = status === "OK"
+                        ? details?.photos?.[0]?.getUrl({ maxWidth: 400 })
+                        : null;
                       setSelectedMarker({ ...marker, photoUrl });
                     }
                   );
