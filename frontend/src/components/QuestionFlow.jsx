@@ -1,6 +1,7 @@
 import React, { useState } from "react";
+import { Box, Typography, TextField, Button } from "@mui/material";
 
-function QuestionFlow({ onSubmit }) {
+function QuestionFlow({ onSubmit, onCancel }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
 
@@ -12,7 +13,6 @@ function QuestionFlow({ onSubmit }) {
 
   const handleNext = () => {
     if (step === questions.length - 1) {
-      // done
       onSubmit(answers);
     } else {
       setStep(step + 1);
@@ -20,16 +20,50 @@ function QuestionFlow({ onSubmit }) {
   };
 
   return (
-    <div>
-      <p>{questions[step].question}</p>
-      <input
-        type="text"
+    <Box>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        {questions[step].question}
+      </Typography>
+
+      <TextField
+        fullWidth
+        variant="outlined"
+        placeholder="Type your answer..."
+        value={answers[questions[step].key] || ""}
         onChange={(e) =>
-          setAnswers((prev) => ({ ...prev, [questions[step].key]: e.target.value }))
+          setAnswers((prev) => ({
+            ...prev,
+            [questions[step].key]: e.target.value
+          }))
         }
+        sx={{ mb: 3 }}
       />
-      <button onClick={handleNext}>Next</button>
-    </div>
+
+      <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+        <Button
+          variant="outlined"
+          color="secondary"
+          onClick={onCancel}
+          sx={{ textTransform: "none", borderRadius: 3 }}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={handleNext}
+          sx={{
+            textTransform: "none",
+            borderRadius: 3,
+            px: 3,
+            py: 1,
+            fontWeight: "bold"
+          }}
+        >
+          {step === questions.length - 1 ? "Finish" : "Next"}
+        </Button>
+      </Box>
+    </Box>
   );
 }
 

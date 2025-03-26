@@ -3,21 +3,22 @@ import MapPage from "./components/MapPage";
 import QuestionFlow from "./components/QuestionFlow";
 import GoogleLoginButton from "./components/GoogleLoginButton";
 import "./App.css";
-import { InfoWindow } from "@react-google-maps/api";
 import { useNavigate } from "react-router-dom";
+import CityModal from "./components/CityModal";
+import { Modal, Box } from "@mui/material";
 
 function ProcessingScreen({ onFinish }) {
   React.useEffect(() => {
     const timer = setTimeout(() => {
       onFinish();
-    }, 3000); // 3s to simulate AI
+    }, 3000);
     return () => clearTimeout(timer);
   }, [onFinish]);
 
   return (
     <div className="processing-screen">
-    <div className="spinner" />
-    <h2>Processing your schedule...</h2>
+      <div className="spinner" />
+      <h2>Processing your schedule...</h2>
     </div>
   );
 }
@@ -25,28 +26,19 @@ function ProcessingScreen({ onFinish }) {
 function App() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-
-  // CITY + PLACES
   const [cityName, setCityName] = useState("");
   const [citySelected, setCitySelected] = useState(false);
   const [allPlaces, setAllPlaces] = useState([]);
-
-  // QUESTIONS + FLOW
   const [questionDone, setQuestionDone] = useState(false);
-  const [answers, setAnswers] = useState({});
   const [processing, setProcessing] = useState(false);
+  const [cityModalMinimized, setCityModalMinimized] = useState(false);
+  const [suggestedPlaceIds, setSuggestedPlaceIds] = useState([]);
 
-  //Add Preload Spinner
-  const [loadingPlaces, setLoadingPlaces] = useState(false);
-  
-
-  // On app load, restore user if within 10 min
   React.useEffect(() => {
     const saved = localStorage.getItem("eventai_user");
     if (saved) {
       const { user, timestamp } = JSON.parse(saved);
       const now = Date.now();
-  
       const tenMinutes = 10 * 60 * 1000;
       if (now - timestamp < tenMinutes) {
         setUser(user);
@@ -56,99 +48,75 @@ function App() {
     }
   }, []);
 
-  // HANDLE LOGIN
   const handleLoginSuccess = (userData) => {
     setUser(userData);
-
-    // Save login time and user data in localStorage
     const loginData = {
       user: userData,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     localStorage.setItem("eventai_user", JSON.stringify(loginData));
   };
 
-  // WHEN CITY IS FOUND
   const handleCityConfirm = (city) => {
-    setCityName(city);
-    setCitySelected(true);
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address: city }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        setCityName(city);
+        setCitySelected(true);
+        setQuestionDone(false);
+        setAllPlaces([]);
+        setCityModalMinimized(true);
+        setSuggestedPlaceIds([]);
+      } else {
+        alert("City not found");
+      }
+    });
   };
 
-  // WHEN MAPPAGE GETS PLACES
   const handleVenueResults = (places) => {
-    setLoadingPlaces(true);
-    // Save them in state for later filtering
     setAllPlaces(places);
-    setTimeout(() => setLoadingPlaces(false), 1000);
   };
 
-  // WHEN QUESTIONS COMPLETE
   const handleQuestionComplete = (userAnswers) => {
-    setAnswers(userAnswers);
+    const wantsToEat = userAnswers.eat?.toLowerCase() === "yes";
+    const spots = parseInt(userAnswers.spots || "3", 10);
+    let filtered = allPlaces.filter((place) => {
+      const types = place.types || [];
+      return wantsToEat
+        ? types.includes("restaurant") ||
+            types.includes("food") ||
+            types.includes("cafe") ||
+            types.includes("meal_takeaway")
+        : types.includes("bar") || types.includes("night_club");
+    });
+
+    let openNowFiltered = filtered.filter((place) => place.openNow === true);
+    if (openNowFiltered.length < spots) {
+      const fallback = filtered.filter((p) => p.openNow !== true);
+      openNowFiltered = [...openNowFiltered, ...fallback];
+    }
+
+    const finalSuggested = openNowFiltered.slice(0, spots);
+    setSuggestedPlaceIds(finalSuggested.map((p) => p.placeId));
     setQuestionDone(true);
     setProcessing(true);
   };
 
-  // PROCESSING FINISHED
   const handleProcessingDone = () => {
     setProcessing(false);
   };
 
-  // FILTER + SLICE PLACES BASED ON ANSWERS
-  const getFilteredPlaces = () => {
-    if (!allPlaces.length) return [];
-
-    // Check if user wants to eat
-    const wantsToEat = answers.eat?.toLowerCase() === "yes";
-
-    // Filter
-    let filtered = allPlaces.filter((place) => {
-      const types = place.types || [];
-      if (wantsToEat) {
-        // Keep "restaurant", "food", "cafe", etc.
-        return (
-          types.includes("restaurant") ||
-          types.includes("food") ||
-          types.includes("cafe") ||
-          types.includes("meal_takeaway")
-        );
-      } else {
-        // Keep "bar", "night_club"
-        return types.includes("bar") || types.includes("night_club");
-      }
-    });
-
-    // If filtered is empty but user wants to eat, we can fallback to everything or do nothing
-    // For now let's just keep it as is.
-
-    // Spots to visit
-    const spots = parseInt(answers.spots || "3", 10);
-
-    // Try to get spots that are open now
-    let openNowFiltered = filtered.filter((place) => place.openNow === true);
-
-    // If we don’t have enough open ones, fill in the rest
-    if (openNowFiltered.length < spots) {
-      const closedOrUnknown = filtered.filter((place) => place.openNow !== true);
-      openNowFiltered = [...openNowFiltered, ...closedOrUnknown];
-    }
-
-    // Return only the number of spots requested
-    return openNowFiltered.slice(0, spots);
-  };
-
-  const finalPlaces = getFilteredPlaces();
+  const suggestedPlaces = allPlaces.filter((place) =>
+    suggestedPlaceIds.includes(place.placeId)
+  );
 
   return (
     <div className="app-container">
       {user && (
-        
         <div className="sidebar">
-          
           <h2> Welcome, {user.name}!</h2>
-          
           <button
-            className = "logout-button"
+            className="logout-button"
             onClick={() => {
               const confirmed = window.confirm("Are you sure you want to log out?");
               if (confirmed) {
@@ -160,15 +128,11 @@ function App() {
           >
             🔒 Logout
           </button>
-          {citySelected }
 
-          {/* If final itinerary is ready */}
           {questionDone && !processing && (
             <>
               <h3>Your Canada Day Itinerary</h3>
-
-              {/* Show final filtered places */}
-              {finalPlaces.map((venue, i) => (
+              {suggestedPlaces.map((venue, i) => (
                 <div className="venue" key={i}>
                   {venue.photoUrl ? (
                     <img
@@ -183,14 +147,18 @@ function App() {
                       className="venue-photo"
                     />
                   )}
-
                   <h4>{venue.name}</h4>
                   <p>{venue.address || venue.vicinity || "No address provided"}</p>
                   <p
                     style={{
-                      color: venue.openNow === true ? "green" : venue.openNow === false ? "red" : "gray",
+                      color:
+                        venue.openNow === true
+                          ? "green"
+                          : venue.openNow === false
+                          ? "red"
+                          : "gray",
                       fontWeight: "bold",
-                      margin: "0.3rem 0"
+                      margin: "0.3rem 0",
                     }}
                   >
                     {venue.openNow === true
@@ -200,14 +168,17 @@ function App() {
                       : "⏳ Hours Unknown"}
                   </p>
                   <p>⭐ {venue.rating || "N/A"}</p>
-
                   {venue.openNow !== true && venue.todayHours && (
-                    <p style={{ fontStyle: "italic", color: "#666", fontSize: "0.85rem" }}>
+                    <p
+                      style={{
+                        fontStyle: "italic",
+                        color: "#666",
+                        fontSize: "0.85rem",
+                      }}
+                    >
                       {venue.todayHours}
                     </p>
                   )}
-
-                  {/* 🧭 Directions link */}
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${venue.lat},${venue.lng}`}
                     target="_blank"
@@ -216,23 +187,25 @@ function App() {
                       display: "inline-block",
                       marginTop: "0.5rem",
                       color: "#007bff",
-                      textDecoration: "underline"
+                      textDecoration: "underline",
                     }}
                   >
                     🧭 Get Directions
                   </a>
                 </div>
               ))}
-              {/* If no places matched, mention something */}
-              {finalPlaces.length === 0 && (
+              {suggestedPlaces.length === 0 && (
                 <p>No matching venues found. Try a bigger city or different answers!</p>
               )}
-
               <a
                 href="https://yourshop.com/shirt"
                 target="_blank"
                 rel="noreferrer"
-                style={{ display: "inline-block", marginTop: "1rem", textDecoration: "none" }}
+                style={{
+                  display: "inline-block",
+                  marginTop: "1rem",
+                  textDecoration: "none",
+                }}
               >
                 🛍️ Buy Canada Day Shirt
               </a>
@@ -249,32 +222,68 @@ function App() {
           </div>
         )}
 
-        {user && !questionDone && (
-          <div className="search-bar">
-            {!citySelected ? (
-              <>
-                {/* Type a city + search = zoom in MapPage */}
-                <input
-                  type="text"
-                  placeholder="Enter a city"
-                  value={cityName}
-                  onChange={(e) => setCityName(e.target.value)}
-                />
-                <button onClick={() => handleCityConfirm(cityName)}>Search</button>
-              </>
-            ) : (
-              <QuestionFlow onSubmit={handleQuestionComplete} />
-            )}
-          </div>
+        {user && (
+          <CityModal
+            open={true}
+            minimized={cityModalMinimized}
+            cityName={cityName}
+            onChange={(value) => setCityName(value)}
+            onConfirm={() => {
+              if (!cityName || cityName.trim().length < 3) {
+                alert("Please enter a valid city name.");
+                return;
+              }
+              handleCityConfirm(cityName.trim());
+            }}
+            onLater={() => setCityModalMinimized(true)}
+            onMaximize={() => {
+              setCityModalMinimized(false);
+              setCitySelected(false);
+            }}
+          />
+        )}
+
+        {user && citySelected && !questionDone && (
+          <Modal
+            open={true}
+            disableEnforceFocus
+            disableAutoFocus
+            disableEscapeKeyDown
+            hideBackdrop
+            style={{ pointerEvents: "none" }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: "20%",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "90%",
+                maxWidth: 500,
+                bgcolor: "white",
+                boxShadow: 24,
+                p: 3,
+                borderRadius: 3,
+                pointerEvents: "auto",
+                zIndex: 1300,
+              }}
+            >
+              <QuestionFlow
+                onSubmit={handleQuestionComplete}
+                onCancel={() => setCitySelected(false)}
+              />
+            </Box>
+          </Modal>
         )}
 
         {processing && <ProcessingScreen onFinish={handleProcessingDone} />}
 
-        {/* Map always rendered; it will zoom + fetch places once city is typed */}
         <MapPage
           cityName={cityName}
           citySelected={citySelected}
           onVenueResults={handleVenueResults}
+          suggestedPlaceIds={suggestedPlaceIds}
+          shouldTriggerSearch={questionDone === false}
         />
       </div>
     </div>

@@ -3,21 +3,30 @@ import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/ap
 
 const containerStyle = {
   width: "100%",
-  height: "100%"
+  height: "100%",
 };
 
 const defaultCenter = {
   lat: 56.1304,
-  lng: -106.3468
+  lng: -106.3468,
 };
 
 const libraries = ["places"];
 
-function MapPage({ cityName, citySelected, onVenueResults }) {
+function MapPage({
+  cityName,
+  citySelected,
+  onVenueResults,
+  shouldTriggerSearch,
+  suggestedPlaceIds,
+}) {
   const [mapRef, setMapRef] = useState(null);
   const [markers, setMarkers] = useState([]);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [showLabels, setShowLabels] = useState(false);
+
+  const [redMarkerIcon, setRedMarkerIcon] = useState(null);
+  const [greenMarkerIcon, setGreenMarkerIcon] = useState(null);
 
   const toggleLabels = () => {
     if (!mapRef) return;
@@ -28,11 +37,27 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
     mapRef.setMapTypeId(newShowLabels ? "hybrid" : "satellite");
   };
 
-  // When citySelected changes from false->true, we do geocode + nearSearch
+  // Load icons after map is ready
+  const handleMapLoad = (map) => {
+    setMapRef(map);
+    if (window.google?.maps) {
+      setRedMarkerIcon({
+        url: "https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png",
+        scaledSize: new window.google.maps.Size(47, 73),
+      });
+
+      setGreenMarkerIcon({
+        url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
+        scaledSize: new window.google.maps.Size(27, 43),
+      });
+    }
+  };
+
+  // Trigger search when ready
   useEffect(() => {
-    if (!citySelected || !cityName || !mapRef) return;
+    if (!citySelected || !cityName || !mapRef || !shouldTriggerSearch) return;
     searchCity(cityName);
-  }, [citySelected, cityName, mapRef]);
+  }, [citySelected, cityName, mapRef, shouldTriggerSearch]);
 
   const searchCity = (city) => {
     if (!window.google || !mapRef) return;
@@ -47,38 +72,38 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
 
         const rawLocation = {
           lat: location.lat(),
-          lng: location.lng()
+          lng: location.lng(),
         };
 
-        // ✅ PlacesService tied to actual map instance
         const service = new window.google.maps.places.PlacesService(mapRef);
 
         service.textSearch(
           {
             location: rawLocation,
-            radius: 1500,
-            query: "bars restaurants night club food"
+            radius: 5000,
+            query: "bars restaurants night club food",
           },
           (placesResults, placesStatus) => {
             if (placesStatus === "OK" && placesResults.length > 0) {
-              // Now enrich with photo URLs
               const enrichPlace = (place) =>
                 new Promise((resolve) => {
                   service.getDetails(
                     {
                       placeId: place.place_id,
-                      fields: ["photos", "types", "opening_hours"]
+                      fields: ["photos", "types", "opening_hours"],
                     },
                     (details, status) => {
-                      const photoUrl = status === "OK"
-                        ? details?.photos?.[0]?.getUrl({ maxWidth: 400 })
-                        : null;
+                      const photoUrl =
+                        status === "OK"
+                          ? details?.photos?.[0]?.getUrl({ maxWidth: 400 })
+                          : null;
 
                       const jsDay = new Date().getDay();
                       const todayIndex = jsDay === 0 ? 6 : jsDay - 1;
                       const weekdayText = details?.opening_hours?.weekday_text || [];
-                      const todayHours = weekdayText.length ? weekdayText[todayIndex] : null;
-                                
+                      const todayHours =
+                        weekdayText.length > 0 ? weekdayText[todayIndex] : null;
+
                       resolve({
                         placeId: place.place_id,
                         name: place.name,
@@ -87,14 +112,14 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
                         address: place.vicinity || place.formatted_address,
                         rating: place.rating,
                         photoUrl,
-                        types: place.types, // needed for filtering
+                        types: place.types,
                         openNow: details?.opening_hours?.open_now ?? null,
-                        todayHours
+                        todayHours,
                       });
                     }
                   );
                 });
-        
+
               Promise.all(placesResults.map(enrichPlace)).then((enrichedPlaces) => {
                 setMarkers(enrichedPlaces);
                 onVenueResults(enrichedPlaces);
@@ -120,14 +145,11 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
         center={defaultCenter}
         zoom={4}
         mapTypeId="satellite"
-        options={{
-          mapTypeControl: false, // hides Map/Satellite switcher
-        }}
-        onLoad={(map) => setMapRef(map)}
-        onClick={() => {
-          setSelectedMarker(null); // clear info window if background clicked
-        }}
+        options={{ mapTypeControl: false }}
+        onLoad={handleMapLoad}
+        onClick={() => setSelectedMarker(null)}
       >
+        {/* Top-right toggle */}
         <div
           style={{
             position: "absolute",
@@ -138,7 +160,7 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
             padding: "0.5rem 1rem",
             borderRadius: "8px",
             boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-            fontSize: "0.9rem"
+            fontSize: "0.9rem",
           }}
         >
           <label>
@@ -152,62 +174,68 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
           </label>
         </div>
 
+        {/* Info window */}
         {selectedMarker && (
           <InfoWindow
             position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
             onCloseClick={() => setSelectedMarker(null)}
           >
-
             <div style={{ maxWidth: "220px" }}>
-              {/* Image preview */}
               {selectedMarker.photoUrl ? (
                 <img
                   src={selectedMarker.photoUrl}
                   alt="Venue preview"
-                  style={{ width: "100%", borderRadius: "8px", marginBottom: "8px" }}
+                  style={{
+                    width: "100%",
+                    borderRadius: "8px",
+                    marginBottom: "8px",
+                  }}
                 />
               ) : (
                 <img
                   src="https://placehold.co/400x200?text=No+Image"
                   alt={selectedMarker.name}
-                  style={{ width: "100%", borderRadius: "8px", marginBottom: "8px" }}
+                  style={{
+                    width: "100%",
+                    borderRadius: "8px",
+                    marginBottom: "8px",
+                  }}
                 />
               )}
-
               <h4>{selectedMarker.name}</h4>
               <p>{selectedMarker.address || "No address"}</p>
               {selectedMarker.rating && <p>⭐ {selectedMarker.rating}</p>}
             </div>
           </InfoWindow>
         )}
-        {markers.map((marker, index) => (
-          <Marker
-            key={index}
-            position={{ lat: marker.lat, lng: marker.lng }}
-            title={marker.name}
-            onClick={() => {
-              const service = new window.google.maps.places.PlacesService(mapRef);
-              
-              // Helper to fetch photoUrl for each place using placeId
-              service.getDetails(
-                {
-                  placeId: marker.placeId,
-                  fields: ["photos"]
-                },
-                (details, status) => {
-                  if (status === "OK") {
-                    const photoUrl = details?.photos?.[0]?.getUrl({
-                      maxWidth: 400
-                    }) || null;
-                    setSelectedMarker({ ...marker, photoUrl });
-                  } else {
-                    setSelectedMarker(marker); // fallback
-                  }
-                }
-              );
-            }}
-          />
-        ))}
+
+        {/* Markers (suggested = red, others = green) */}
+        {redMarkerIcon &&
+          greenMarkerIcon &&
+          markers.map((marker, index) => {
+            const isSuggested = suggestedPlaceIds?.includes(marker.placeId);
+            return (
+              <Marker
+                key={index}
+                position={{ lat: marker.lat, lng: marker.lng }}
+                title={marker.name}
+                icon={isSuggested ? redMarkerIcon : greenMarkerIcon}
+                onClick={() => {
+                  const service = new window.google.maps.places.PlacesService(mapRef);
+                  service.getDetails(
+                    { placeId: marker.placeId, fields: ["photos"] },
+                    (details, status) => {
+                      const photoUrl =
+                        status === "OK"
+                          ? details?.photos?.[0]?.getUrl({ maxWidth: 400 })
+                          : null;
+                      setSelectedMarker({ ...marker, photoUrl });
+                    }
+                  );
+                }}
+              />
+            );
+          })}
       </GoogleMap>
     </LoadScript>
   );
