@@ -99,7 +99,7 @@ function MapPage({
         const location = results[0].geometry.location;
 
         mapRef.panTo(location);
-        mapRef.setZoom(13);
+        mapRef.setZoom(14);
 
         const rawLocation = {
           lat: location.lat(),
