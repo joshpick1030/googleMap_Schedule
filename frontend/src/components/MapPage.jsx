@@ -51,17 +51,37 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
           },
           (placesResults, placesStatus) => {
             if (placesStatus === "OK" && placesResults.length > 0) {
-              setMarkers(
-                placesResults.map((place) => ({
-                  placeId: place.place_id,
-                  name: place.name,
-                  lat: place.geometry.location.lat(),
-                  lng: place.geometry.location.lng(),
-                  address: place.vicinity || place.formatted_address,
-                  rating: place.rating
-                }))
-              );
-              onVenueResults(placesResults);
+              // Now enrich with photo URLs
+              const enrichPlace = (place) =>
+                new Promise((resolve) => {
+                  service.getDetails(
+                    {
+                      placeId: place.place_id,
+                      fields: ["photos", "types"]
+                    },
+                    (details, status) => {
+                      const photoUrl = status === "OK"
+                        ? details?.photos?.[0]?.getUrl({ maxWidth: 400 })
+                        : null;
+        
+                      resolve({
+                        placeId: place.place_id,
+                        name: place.name,
+                        lat: place.geometry.location.lat(),
+                        lng: place.geometry.location.lng(),
+                        address: place.vicinity || place.formatted_address,
+                        rating: place.rating,
+                        photoUrl,
+                        types: place.types // needed for filtering
+                      });
+                    }
+                  );
+                });
+        
+              Promise.all(placesResults.map(enrichPlace)).then((enrichedPlaces) => {
+                setMarkers(enrichedPlaces);
+                onVenueResults(enrichedPlaces);
+              });
             } else {
               onVenueResults([]);
             }

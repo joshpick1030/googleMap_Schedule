@@ -29,6 +29,9 @@ function App() {
   const [answers, setAnswers] = useState({});
   const [processing, setProcessing] = useState(false);
 
+  //Add Preload Spinner
+  const [loadingPlaces, setLoadingPlaces] = useState(false);
+
   // HANDLE LOGIN
   const handleLoginSuccess = (userData) => {
     setUser(userData);
@@ -42,8 +45,10 @@ function App() {
 
   // WHEN MAPPAGE GETS PLACES
   const handleVenueResults = (places) => {
+    setLoadingPlaces(true);
     // Save them in state for later filtering
     setAllPlaces(places);
+    setTimeout(() => setLoadingPlaces(false), 1000);
   };
 
   // WHEN QUESTIONS COMPLETE
@@ -107,8 +112,21 @@ function App() {
               {/* Show final filtered places */}
               {finalPlaces.map((venue, i) => (
                 <div className="venue" key={i}>
+                  {venue.photoUrl ? (
+                    <img
+                      src={venue.photoUrl}
+                      alt={venue.name}
+                      className="venue-photo"
+                    />
+                  ) : (
+                    <img
+                      src="https://placehold.co/400x200?text=No+Image"
+                      alt="No Preview"
+                      className="venue-photo"
+                    />
+                  )}
                   <h4>{venue.name}</h4>
-                  <p>{venue.vicinity || venue.formatted_address}</p>
+                  <p>{venue.address || venue.vicinity || "No address provided"}</p>
                   <p>⭐ {venue.rating || "N/A"}</p>
                 </div>
               ))}
