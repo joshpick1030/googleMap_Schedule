@@ -3,6 +3,7 @@ import MapPage from "./components/MapPage";
 import QuestionFlow from "./components/QuestionFlow";
 import GoogleLoginButton from "./components/GoogleLoginButton";
 import "./App.css";
+import { InfoWindow } from "@react-google-maps/api";
 
 function ProcessingScreen({ onFinish }) {
   React.useEffect(() => {

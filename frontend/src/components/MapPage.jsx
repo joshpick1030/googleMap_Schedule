@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
 
 const containerStyle = {
   width: "100%",
@@ -16,6 +16,7 @@ const libraries = ["places"];
 function MapPage({ cityName, citySelected, onVenueResults }) {
   const [mapRef, setMapRef] = useState(null);
   const [markers, setMarkers] = useState([]);
+  const [selectedMarker, setSelectedMarker] = useState(null);
 
   // When citySelected changes from false->true, we do geocode + nearSearch
   useEffect(() => {
@@ -54,7 +55,9 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
                 placesResults.map((place) => ({
                   name: place.name,
                   lat: place.geometry.location.lat(),
-                  lng: place.geometry.location.lng()
+                  lng: place.geometry.location.lng(),
+                  address: place.vicinity || place.formatted_address,
+                  rating: place.rating
                 }))
               );
               onVenueResults(placesResults);
@@ -80,11 +83,26 @@ function MapPage({ cityName, citySelected, onVenueResults }) {
         zoom={4}
         onLoad={(map) => setMapRef(map)}
       >
+        {selectedMarker && (
+          <InfoWindow
+            position={{ lat:selectedMarker.lat, lng: selectedMarker.lng }}
+            onCloseClick= {() => setSelectedMarker(null)}
+          >
+            <div style={{ maxWidth: "200px" }}>
+              <h4 style= {{margin: "0 0 4px" }}>{selectedMarker.name}</h4>
+              <p style={{ margin: "0" }}>{selectedMarker.address || "No address provided"}</p>
+                {selectedMarker.rating && (
+                  <p style={{ margin: "4px 0 0" }}>⭐ {selectedMarker.rating}</p>
+                )}
+            </div>
+          </InfoWindow>
+        )}
         {markers.map((marker, index) => (
           <Marker
             key={index}
             position={{ lat: marker.lat, lng: marker.lng }}
             title={marker.name}
+            onClick={() => setSelectedMarker(marker)}
           />
         ))}
       </GoogleMap>
